@@ -1,0 +1,316 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>YourRoom — Cozy Virtual Study Space</title>
+  <meta name="description" content="A cozy virtual lofi study room. Toggle lights, play music, set a Pomodoro timer, and vibe with ambient rain sounds." />
+  <meta property="og:title" content="YourRoom — Cozy Virtual Study Space" />
+  <meta property="og:description" content="Your cozy virtual lofi study room 🌙" />
+  <meta property="og:type" content="website" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body class="lights-off">
+  <div id="light-overlay" class="light-overlay"></div>
+  <div id="noise-overlay" class="noise-overlay"></div>
+  <canvas id="rain-canvas" class="rain-canvas"></canvas>
+  <div class="room-wrapper">
+    <div class="room-ceiling">
+      <div class="ceiling-lamp">
+        <div class="lamp-wire"></div>
+        <div class="lamp-shade"></div>
+        <div class="lamp-bulb" id="ceiling-bulb"></div>
+        <div class="lamp-glow" id="ceiling-glow"></div>
+      </div>
+      <div class="stars" id="stars-container"></div>
+    </div>
+    <div class="room-scene">
+      <div class="wall wall-left">
+        <div class="bookshelf">
+          <div class="shelf shelf-top">
+            <div class="book b1"></div><div class="book b2"></div><div class="book b3"></div>
+            <div class="book b4"></div><div class="book b5"></div>
+            <div class="plant-small"></div>
+            <div class="book b6"></div><div class="book b7"></div>
+          </div>
+          <div class="shelf-board"></div>
+          <div class="shelf shelf-mid">
+            <div class="book b8"></div><div class="book b9"></div>
+            <div class="mug-decor"></div>
+            <div class="book b10"></div><div class="book b11"></div><div class="book b12"></div>
+          </div>
+          <div class="shelf-board"></div>
+          <div class="shelf shelf-bot">
+            <div class="book b13"></div><div class="book b14"></div><div class="book b15"></div>
+            <div class="frame-small"></div>
+            <div class="book b16"></div>
+          </div>
+          <div class="shelf-board"></div>
+        </div>
+        <div class="wall-poster">
+          <div class="poster-inner">
+            <div class="poster-text">study.<br/>dream.<br/>create.</div>
+          </div>
+        </div>
+      </div>
+      <div class="wall wall-center">
+        <div class="window-frame" id="window-frame">
+          <div class="window-glass">
+            <div class="window-pane"></div>
+            <div class="window-cross-h"></div>
+            <div class="window-cross-v"></div>
+            <div class="moon" id="moon"></div>
+            <div class="skyline">
+              <div class="building b-a"></div><div class="building b-b"></div>
+              <div class="building b-c"></div><div class="building b-d"></div>
+              <div class="building b-e"></div><div class="building b-f"></div>
+            </div>
+            <div class="window-rain" id="window-rain-inner"></div>
+          </div>
+          <div class="window-sill">
+            <div class="plant-pot pot-a">
+              <div class="plant-leaves leaves-a"></div>
+            </div>
+            <div class="plant-pot pot-b">
+              <div class="plant-leaves leaves-b"></div>
+            </div>
+          </div>
+        </div>
+        <div class="wall-clock-container">
+          <div class="wall-clock">
+            <div class="clock-face">
+              <div class="clock-hand hour-hand" id="hour-hand"></div>
+              <div class="clock-hand minute-hand" id="minute-hand"></div>
+              <div class="clock-hand second-hand" id="second-hand"></div>
+              <div class="clock-center"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="wall wall-right">
+        <div class="fairy-lights" id="fairy-lights">
+          <div class="fairy-string"></div>
+          <div class="fairy-bulb fb1"></div><div class="fairy-bulb fb2"></div>
+          <div class="fairy-bulb fb3"></div><div class="fairy-bulb fb4"></div>
+          <div class="fairy-bulb fb5"></div><div class="fairy-bulb fb6"></div>
+          <div class="fairy-bulb fb7"></div><div class="fairy-bulb fb8"></div>
+        </div>
+        <div class="photo-wall">
+          <div class="photo-frame pf1"></div>
+          <div class="photo-frame pf2"></div>
+          <div class="photo-frame pf3"></div>
+        </div>
+      </div>
+      <div class="desk-area">
+        <div class="desk">
+          <div class="desk-lamp" id="desk-lamp">
+            <div class="lamp-base"></div>
+            <div class="lamp-arm lamp-arm-1"></div>
+            <div class="lamp-arm lamp-arm-2"></div>
+            <div class="lamp-head"></div>
+            <div class="lamp-light-cone" id="lamp-cone"></div>
+          </div>
+          <div class="monitor-setup">
+            <div class="monitor-stand"></div>
+            <div class="monitor-neck"></div>
+            <div class="monitor-screen" id="monitor-screen">
+              <div class="screen-content">
+                <div class="screen-clock" id="screen-clock">00:00:00</div>
+                <div class="screen-date" id="screen-date">Tuesday, Sep 16</div>
+                <div class="screen-quote" id="screen-quote">"The secret of getting ahead is getting started."</div>
+              </div>
+              <div class="screen-glow" id="screen-glow"></div>
+            </div>
+          </div>
+          <div class="keyboard"></div>
+          <div class="mouse"></div>
+          <div class="coffee-mug">
+            <div class="mug-body"></div>
+            <div class="mug-handle"></div>
+            <div class="mug-steam steam-1"></div>
+            <div class="mug-steam steam-2"></div>
+            <div class="mug-steam steam-3"></div>
+          </div>
+          <div class="notebook">
+            <div class="notebook-lines">
+              <span></span><span></span><span></span><span></span>
+            </div>
+            <div class="notebook-pen"></div>
+          </div>
+          <div class="candle-obj" id="candle-obj">
+            <div class="candle-body"></div>
+            <div class="candle-flame" id="candle-flame"></div>
+            <div class="candle-glow" id="candle-glow"></div>
+          </div>
+        </div>
+        <div class="chair">
+          <div class="chair-back"></div>
+          <div class="chair-seat"></div>
+          <div class="chair-leg cl1"></div>
+          <div class="chair-leg cl2"></div>
+        </div>
+      </div>
+      <div class="floor">
+        <div class="floor-rug"></div>
+        <div class="floor-plant">
+          <div class="fp-pot"></div>
+          <div class="fp-stem"></div>
+          <div class="fp-leaf fl1"></div>
+          <div class="fp-leaf fl2"></div>
+          <div class="fp-leaf fl3"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="control-panel" id="control-panel">
+      <div class="panel-header">
+        <span class="panel-title">🏠 YourRoom</span>
+        <button class="panel-toggle-btn" id="panel-toggle-btn" title="Collapse panel">‹</button>
+      </div>
+      <div class="panel-section">
+        <div class="section-label">🎵 Lofi Music</div>
+        <div class="music-player">
+          <div class="music-viz" id="music-viz">
+            <div class="viz-bar"></div><div class="viz-bar"></div><div class="viz-bar"></div>
+            <div class="viz-bar"></div><div class="viz-bar"></div><div class="viz-bar"></div>
+            <div class="viz-bar"></div><div class="viz-bar"></div>
+          </div>
+          <div class="music-info">
+            <div class="music-title" id="music-title">Lofi Hip Hop</div>
+            <div class="music-artist" id="music-artist">ChilledCow Radio</div>
+          </div>
+          <div class="music-controls">
+            <button class="ctrl-btn" id="btn-prev" title="Previous">⏮</button>
+            <button class="ctrl-btn play-btn" id="btn-play" title="Play/Pause">▶</button>
+            <button class="ctrl-btn" id="btn-next" title="Next">⏭</button>
+          </div>
+          <div class="volume-row">
+            <span class="vol-icon">🔈</span>
+            <input type="range" id="volume-slider" class="slider" min="0" max="100" value="60" />
+            <span class="vol-icon">🔊</span>
+          </div>
+          <div id="yt-player-container" style="display:none;">
+            <div id="yt-player"></div>
+          </div>
+          <div class="playlist-selector">
+            <button class="playlist-btn active" data-playlist="0">Lofi Hip Hop</button>
+            <button class="playlist-btn" data-playlist="1">Jazzy Study</button>
+            <button class="playlist-btn" data-playlist="2">Chill Beats</button>
+          </div>
+        </div>
+      </div>
+      <div class="panel-section">
+        <div class="section-label">💡 Lighting</div>
+        <div class="lights-grid">
+          <div class="light-item">
+            <span class="light-name">Room Light</span>
+            <label class="toggle-switch">
+              <input type="checkbox" id="toggle-room-light" />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="light-item">
+            <span class="light-name">Desk Lamp</span>
+            <label class="toggle-switch">
+              <input type="checkbox" id="toggle-desk-lamp" checked />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="light-item">
+            <span class="light-name">Fairy Lights</span>
+            <label class="toggle-switch">
+              <input type="checkbox" id="toggle-fairy" checked />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="light-item">
+            <span class="light-name">Candle</span>
+            <label class="toggle-switch">
+              <input type="checkbox" id="toggle-candle" checked />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+        <div class="brightness-row">
+          <span>🌑</span>
+          <input type="range" id="brightness-slider" class="slider" min="0" max="100" value="30" />
+          <span>☀️</span>
+        </div>
+      </div>
+      <div class="panel-section">
+        <div class="section-label">🌧️ Ambience</div>
+        <div class="ambience-grid">
+          <button class="amb-btn active" id="amb-rain" data-sound="rain">
+            <span class="amb-icon">🌧️</span><span>Rain</span>
+          </button>
+          <button class="amb-btn" id="amb-thunder" data-sound="thunder">
+            <span class="amb-icon">⛈️</span><span>Thunder</span>
+          </button>
+          <button class="amb-btn" id="amb-fireplace" data-sound="fireplace">
+            <span class="amb-icon">🔥</span><span>Fireplace</span>
+          </button>
+          <button class="amb-btn" id="amb-cafe" data-sound="cafe">
+            <span class="amb-icon">☕</span><span>Café</span>
+          </button>
+          <button class="amb-btn" id="amb-birds" data-sound="birds">
+            <span class="amb-icon">🐦</span><span>Birds</span>
+          </button>
+          <button class="amb-btn" id="amb-fan" data-sound="fan">
+            <span class="amb-icon">🌀</span><span>Fan</span>
+          </button>
+        </div>
+        <div class="volume-row">
+          <span>🔈</span>
+          <input type="range" id="ambience-volume" class="slider" min="0" max="100" value="40" />
+          <span>🔊</span>
+        </div>
+      </div>
+      <div class="panel-section">
+        <div class="section-label">⏱️ Pomodoro Timer</div>
+        <div class="pomodoro">
+          <div class="pomo-mode-tabs">
+            <button class="pomo-tab active" data-mode="focus" id="tab-focus">Focus</button>
+            <button class="pomo-tab" data-mode="short" id="tab-short">Short Break</button>
+            <button class="pomo-tab" data-mode="long" id="tab-long">Long Break</button>
+          </div>
+          <div class="pomo-display">
+            <div class="pomo-circle">
+              <svg class="pomo-svg" viewBox="0 0 120 120">
+                <circle class="pomo-track" cx="60" cy="60" r="54"/>
+                <circle class="pomo-progress" id="pomo-progress" cx="60" cy="60" r="54"/>
+              </svg>
+              <div class="pomo-time" id="pomo-time">25:00</div>
+            </div>
+          </div>
+          <div class="pomo-controls">
+            <button class="pomo-btn" id="pomo-start">▶ Start</button>
+            <button class="pomo-btn pomo-btn-secondary" id="pomo-reset">↺ Reset</button>
+          </div>
+          <div class="pomo-sessions">
+            <span>Sessions: </span><span id="pomo-count">0</span><span> 🍅</span>
+          </div>
+        </div>
+      </div>
+      <div class="panel-section">
+        <div class="section-label">🌈 Scene</div>
+        <div class="scene-grid">
+          <button class="scene-btn active" id="scene-night" data-scene="night">🌙 Night</button>
+          <button class="scene-btn" id="scene-sunset" data-scene="sunset">🌅 Sunset</button>
+          <button class="scene-btn" id="scene-day" data-scene="day">☀️ Day</button>
+          <button class="scene-btn" id="scene-rain" data-scene="rain">🌧️ Rainy</button>
+        </div>
+      </div>
+    </div>
+
+    <button class="panel-open-tab" id="panel-open-tab" title="Open controls">☰ Controls</button>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="https://www.youtube.com/iframe_api"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
