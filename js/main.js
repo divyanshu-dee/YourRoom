@@ -58,8 +58,9 @@ function createYTPlayer() {
   });
 }
 
-function onYTReady() {
-  ytReady = true;
+function onYTReady(event) {
+  ytPlayer = event.target;
+  ytReady  = true;
   ytPlayer.setVolume(+document.getElementById('volume-slider').value);
   console.log('YT player ready');
 }
