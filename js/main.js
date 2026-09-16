@@ -56,6 +56,14 @@ function getEmbedUrl(videoId) {
   return BASE_URL + videoId + YT_PARAMS + encodeURIComponent(location.origin || 'file://') + '&playlist=' + videoId;
 }
 
+function animateBars() {
+  vizBars.forEach((bar,i) => {
+    bar.style.setProperty('--h', (Math.random()*22+4)+'px');
+    bar.style.setProperty('--dur', (Math.random()*0.5+0.4).toFixed(2)+'s');
+    bar.style.setProperty('--delay', (i*0.1)+'s');
+  });
+}
+
 function setMusicState(playing) {
   isPlaying = playing;
   document.getElementById('btn-play').textContent = playing ? '⏸' : '▶';
