@@ -2,7 +2,7 @@
 
 > A beautiful, interactive virtual lofi study room you can live in.
 
-[![Live Demo](https://img.shields.io/badge/Live-Demo-orange?style=for-the-badge)]([https://your-room.vercel.app](https://divyanshu-dee.github.io/YourRoom/))
+[![Live Demo](https://img.shields.io/badge/Live-Demo-orange?style=for-the-badge)]((https://divyanshu-dee.github.io/YourRoom/))
 
 ## ✨ Features
 
