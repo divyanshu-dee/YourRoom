@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -20,13 +20,14 @@
   <canvas id="rain-canvas" class="rain-canvas" style="display:none"></canvas>
   <div class="room-wrapper">
     <div class="room-ceiling">
+      <div class="ceiling-molding"></div>
+      <div class="ceiling-light-cone" id="ceiling-cone"></div>
       <div class="ceiling-lamp">
         <div class="lamp-wire"></div>
         <div class="lamp-shade"></div>
         <div class="lamp-bulb" id="ceiling-bulb"></div>
         <div class="lamp-glow" id="ceiling-glow"></div>
       </div>
-      <div class="stars" id="stars-container"></div>
     </div>
     <div class="room-scene">
       <div class="wall wall-left">
@@ -56,11 +57,13 @@
             <div class="poster-text">study.<br/>dream.<br/>create.</div>
           </div>
         </div>
+        <div class="wall-baseboard"></div>
       </div>
       <div class="wall wall-center">
         <div class="window-frame" id="window-frame">
           <div class="window-glass">
             <div class="window-pane"></div>
+            <div class="stars" id="stars-container"></div>
             <div class="window-cross-h"></div>
             <div class="window-cross-v"></div>
             <div class="moon" id="moon"></div>
@@ -91,6 +94,7 @@
             </div>
           </div>
         </div>
+        <div class="wall-baseboard"></div>
       </div>
       <div class="wall wall-right">
         <div class="fairy-lights" id="fairy-lights">
@@ -105,14 +109,18 @@
           <div class="photo-frame pf2"></div>
           <div class="photo-frame pf3"></div>
         </div>
+        <div class="wall-baseboard"></div>
       </div>
       <div class="desk-area">
         <div class="desk">
+          <div class="desk-light-pool" id="desk-light-pool"></div>
           <div class="desk-lamp" id="desk-lamp">
             <div class="lamp-base"></div>
             <div class="lamp-arm lamp-arm-1"></div>
             <div class="lamp-arm lamp-arm-2"></div>
-            <div class="lamp-head"></div>
+            <div class="lamp-head">
+              <div class="lamp-head-bulb"></div>
+            </div>
             <div class="lamp-light-cone" id="lamp-cone"></div>
           </div>
           <div class="monitor-setup">
@@ -194,6 +202,7 @@
             <input type="range" id="volume-slider" class="slider" min="0" max="100" value="60" />
             <span class="vol-icon">🔊</span>
           </div>
+          <audio id="lofi-audio" preload="auto" loop></audio>
           <div id="yt-iframe-wrap" style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden;">
             <iframe id="yt-iframe" 
               width="1" height="1"
@@ -204,9 +213,9 @@
             </iframe>
           </div>
           <div class="playlist-selector">
-            <button class="playlist-btn active" data-playlist="0">Lofi Hip Hop</button>
-            <button class="playlist-btn" data-playlist="1">Jazzy Study</button>
-            <button class="playlist-btn" data-playlist="2">Chill Beats</button>
+            <button class="playlist-btn active" data-playlist="0">Lofi Study</button>
+            <button class="playlist-btn" data-playlist="1">Chill Beats</button>
+            <button class="playlist-btn" data-playlist="2">Jazzy Night</button>
           </div>
         </div>
       </div>

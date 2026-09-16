@@ -1,4 +1,4 @@
-﻿/* YourRoom main.js - Fixed */
+/* YourRoom main.js - Fixed */
 'use strict';
 
 const quotes = [
@@ -13,18 +13,18 @@ const quotes = [
 ];
 
 const playlists = [
-  { title: 'Lofi Hip Hop',  artist: 'ChilledCow Radio', videoId: 'jfKfPfyJRdk' },
-  { title: 'Jazzy Study',   artist: 'Lofi Girl',         videoId: '0vv-QD3d0Pg' },
-  { title: 'Chill Beats',   artist: 'Dreamy Lofi',       videoId: 'lTRiuFIWV54' },
+  { title: 'Lofi Study',  artist: 'Chill Beats Studio', src: 'assets/sounds/lofi_study.mp3', videoId: 'jfKfPfyJRdk' },
+  { title: 'Chill Beats', artist: 'Night Owl Vibe',     src: 'assets/sounds/chill_beats.mp3', videoId: '0vv-QD3d0Pg' },
+  { title: 'Jazzy Night', artist: 'Coffee & Books',     src: 'assets/sounds/jazzy_study.mp3', videoId: 'lTRiuFIWV54' },
 ];
 
 const POMO_MODES = { focus: 25*60, short: 5*60, long: 15*60 };
-
 
 let activeAmbienceSounds = new Set();
 let ambienceNodes   = {};
 let audioCtx        = null;
 let ambienceVolume  = 0.4;
+let musicVolume     = 0.6;
 let roomLight       = false;
 let deskLamp        = true;
 let fairyOn         = true;
@@ -37,27 +37,15 @@ let pomoRunning     = false;
 let pomoInterval    = null;
 let pomoSessions    = 0;
 
-const body     = document.body;
-const toast    = document.getElementById('toast');
-const musicViz = document.getElementById('music-viz');
-const vizBars  = musicViz.querySelectorAll('.viz-bar');
-
-// ════════════════════════════════════════════
-// MUSIC — YouTube iframe embed (no API needed)
-// ════════════════════════════════════════════
+const body       = document.body;
+const toast      = document.getElementById('toast');
+const musicViz   = document.getElementById('music-viz');
+const vizBars    = musicViz.querySelectorAll('.viz-bar');
+const lofiAudio  = document.getElementById('lofi-audio');
 const ytIframe   = document.getElementById('yt-iframe');
-const BASE_URL   = 'https://www.youtube.com/embed/';
-const YT_PARAMS  = '?autoplay=1&loop=1&controls=0&rel=0&modestbranding=1&enablejsapi=0&origin=';
 
 let isPlaying       = false;
 let currentPlaylist = 0;
-
-function getEmbedUrl(videoId) {
-  const origin = location.hostname ? location.origin : 'https://www.youtube.com';
-  return BASE_URL + videoId + '?autoplay=1&loop=1&playlist=' + videoId +
-    '&controls=0&rel=0&modestbranding=1&showinfo=0&enablejsapi=1' +
-    '&origin=' + encodeURIComponent(origin);
-}
 
 function animateBars() {
   vizBars.forEach((bar,i) => {
@@ -69,22 +57,40 @@ function animateBars() {
 
 function setMusicState(playing) {
   isPlaying = playing;
-  document.getElementById('btn-play').textContent = playing ? '⏸' : '▶';
+  const playBtn = document.getElementById('btn-play');
+  if (playBtn) playBtn.textContent = playing ? '⏸' : '▶';
   musicViz.classList.toggle('music-playing', playing);
   if (playing) animateBars();
 }
 
 function playMusic() {
-  const videoId = playlists[currentPlaylist].videoId;
-  const url = getEmbedUrl(videoId);
-  ytIframe.src = url;
-  setMusicState(true);
-  showToast('🎵 Loading ' + playlists[currentPlaylist].title + '...');
+  const p = playlists[currentPlaylist];
+  if (!lofiAudio.src || !lofiAudio.src.includes(p.src)) {
+    lofiAudio.src = p.src;
+  }
+  lofiAudio.volume = musicVolume;
+  
+  const playPromise = lofiAudio.play();
+  if (playPromise !== undefined) {
+    playPromise.then(() => {
+      setMusicState(true);
+      showToast('🎵 Playing ' + p.title);
+    }).catch(err => {
+      console.warn('Audio play error:', err);
+      // Fallback: try YouTube embed if audio element is blocked
+      const origin = location.hostname ? location.origin : 'https://www.youtube.com';
+      ytIframe.src = 'https://www.youtube.com/embed/' + p.videoId + '?autoplay=1&origin=' + encodeURIComponent(origin);
+      setMusicState(true);
+      showToast('🎵 Playing ' + p.title);
+    });
+  }
 }
 
 function stopMusic() {
-  ytIframe.src = '';
+  lofiAudio.pause();
+  if (ytIframe.src) ytIframe.src = '';
   setMusicState(false);
+  showToast('⏸ Music paused');
 }
 
 document.getElementById('btn-play').addEventListener('click', () => {
@@ -112,12 +118,28 @@ function loadPlaylist(idx) {
   document.getElementById('music-title').textContent  = p.title;
   document.getElementById('music-artist').textContent = p.artist;
   document.querySelectorAll('.playlist-btn').forEach((b,i) => b.classList.toggle('active', i===idx));
-  if (isPlaying) playMusic();
-  showToast('🎵 ' + p.title);
+  lofiAudio.src = p.src;
+  lofiAudio.volume = musicVolume;
+  if (isPlaying) {
+    playMusic();
+  } else {
+    showToast('🎵 ' + p.title);
+  }
 }
 
-// Volume: postMessage to iframe (works on deployed https, not file://)
+// Auto loop / next track on completion
+if (lofiAudio) {
+  lofiAudio.addEventListener('ended', () => {
+    currentPlaylist = (currentPlaylist + 1) % playlists.length;
+    loadPlaylist(currentPlaylist);
+    playMusic();
+  });
+}
+
+// Volume slider controls HTML5 audio and fallback iframe
 document.getElementById('volume-slider').addEventListener('input', e => {
+  musicVolume = +e.target.value / 100;
+  if (lofiAudio) lofiAudio.volume = musicVolume;
   try {
     ytIframe.contentWindow.postMessage(JSON.stringify({
       event: 'command', func: 'setVolume', args: [+e.target.value]
@@ -429,11 +451,13 @@ setInterval(rotateQuote, 12000);
 // ════════════════════════════════════════════
 function generateStars() {
   const container = document.getElementById('stars-container');
-  for (let i = 0; i < 60; i++) {
+  if (!container) return;
+  container.innerHTML = '';
+  for (let i = 0; i < 35; i++) {
     const star = document.createElement('div');
     star.className = 'star';
-    const size = Math.random()*2.5+0.5;
-    star.style.cssText = `left:${Math.random()*100}%;top:${Math.random()*100}%;width:${size}px;height:${size}px;--dur:${(Math.random()*3+1).toFixed(1)}s;--del:${(Math.random()*3).toFixed(1)}s;`;
+    const size = Math.random() * 2 + 0.8;
+    star.style.cssText = `left:${Math.random()*100}%;top:${Math.random()*58}%;width:${size}px;height:${size}px;--dur:${(Math.random()*2.5+1).toFixed(1)}s;--del:${(Math.random()*3).toFixed(1)}s;`;
     container.appendChild(star);
   }
 }
