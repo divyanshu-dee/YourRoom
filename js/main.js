@@ -20,10 +20,7 @@ const playlists = [
 
 const POMO_MODES = { focus: 25*60, short: 5*60, long: 15*60 };
 
-let ytPlayer        = null;
-let ytReady         = false;
-let isPlaying       = false;
-let currentPlaylist = 0;
+
 let activeAmbienceSounds = new Set();
 let ambienceNodes   = {};
 let audioCtx        = null;
@@ -46,60 +43,40 @@ const musicViz = document.getElementById('music-viz');
 const vizBars  = musicViz.querySelectorAll('.viz-bar');
 
 // ════════════════════════════════════════════
-// YOUTUBE PLAYER  — robust init
+// MUSIC — YouTube iframe embed (no API needed)
 // ════════════════════════════════════════════
-function createYTPlayer() {
-  ytPlayer = new YT.Player('yt-player', {
-    height: '0', width: '0',
-    videoId: playlists[0].videoId,
-    playerVars: { autoplay: 0, controls: 0, loop: 1,
-                  playlist: playlists[0].videoId, origin: location.origin },
-    events: { onReady: onYTReady, onStateChange: onYTStateChange }
-  });
+const ytIframe   = document.getElementById('yt-iframe');
+const BASE_URL   = 'https://www.youtube.com/embed/';
+const YT_PARAMS  = '?autoplay=1&loop=1&controls=0&rel=0&modestbranding=1&enablejsapi=0&origin=';
+
+let isPlaying       = false;
+let currentPlaylist = 0;
+
+function getEmbedUrl(videoId) {
+  return BASE_URL + videoId + YT_PARAMS + encodeURIComponent(location.origin || 'file://') + '&playlist=' + videoId;
 }
 
-function onYTReady(event) {
-  ytPlayer = event.target;
-  ytReady  = true;
-  ytPlayer.setVolume(+document.getElementById('volume-slider').value);
-  console.log('YT player ready');
+function setMusicState(playing) {
+  isPlaying = playing;
+  document.getElementById('btn-play').textContent = playing ? '⏸' : '▶';
+  musicViz.classList.toggle('music-playing', playing);
+  if (playing) animateBars();
 }
 
-// Called by YouTube API when script loads
-window.onYouTubeIframeAPIReady = function () {
-  createYTPlayer();
-};
-
-// Fallback: if YT API was already loaded before main.js ran
-if (window.YT && window.YT.Player) {
-  createYTPlayer();
+function playMusic() {
+  const videoId = playlists[currentPlaylist].videoId;
+  ytIframe.src = getEmbedUrl(videoId);
+  setMusicState(true);
 }
 
-function onYTStateChange(e) {
-  if (e.data === YT.PlayerState.PLAYING) {
-    isPlaying = true;
-    document.getElementById('btn-play').textContent = '⏸';
-    musicViz.classList.add('music-playing');
-    animateBars();
-  } else {
-    isPlaying = false;
-    document.getElementById('btn-play').textContent = '▶';
-    musicViz.classList.remove('music-playing');
-  }
-}
-
-function animateBars() {
-  vizBars.forEach((bar, i) => {
-    bar.style.setProperty('--h', (Math.random()*22+4) + 'px');
-    bar.style.setProperty('--dur', (Math.random()*0.5+0.4).toFixed(2) + 's');
-    bar.style.setProperty('--delay', (i*0.1) + 's');
-  });
+function stopMusic() {
+  ytIframe.src = '';
+  setMusicState(false);
 }
 
 document.getElementById('btn-play').addEventListener('click', () => {
-  if (!ytPlayer || !ytReady) { showToast('🎵 Player still loading, try again…'); return; }
-  if (isPlaying) ytPlayer.pauseVideo();
-  else           ytPlayer.playVideo();
+  if (isPlaying) stopMusic();
+  else           playMusic();
 });
 
 document.getElementById('btn-prev').addEventListener('click', () => {
@@ -122,15 +99,17 @@ function loadPlaylist(idx) {
   document.getElementById('music-title').textContent  = p.title;
   document.getElementById('music-artist').textContent = p.artist;
   document.querySelectorAll('.playlist-btn').forEach((b,i) => b.classList.toggle('active', i===idx));
-  if (ytPlayer && ytReady) {
-    ytPlayer.loadVideoById({ videoId: p.videoId });
-    ytPlayer.setVolume(+document.getElementById('volume-slider').value);
-  }
-  showToast(`🎵 ${p.title}`);
+  if (isPlaying) playMusic();
+  showToast('🎵 ' + p.title);
 }
 
+// Volume: postMessage to iframe (works on deployed https, not file://)
 document.getElementById('volume-slider').addEventListener('input', e => {
-  if (ytPlayer && ytReady) ytPlayer.setVolume(+e.target.value);
+  try {
+    ytIframe.contentWindow.postMessage(JSON.stringify({
+      event: 'command', func: 'setVolume', args: [+e.target.value]
+    }), '*');
+  } catch(_) {}
 });
 
 // ════════════════════════════════════════════
