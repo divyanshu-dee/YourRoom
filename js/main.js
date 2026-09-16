@@ -53,7 +53,10 @@ let isPlaying       = false;
 let currentPlaylist = 0;
 
 function getEmbedUrl(videoId) {
-  return BASE_URL + videoId + YT_PARAMS + encodeURIComponent(location.origin || 'file://') + '&playlist=' + videoId;
+  const origin = location.hostname ? location.origin : 'https://www.youtube.com';
+  return BASE_URL + videoId + '?autoplay=1&loop=1&playlist=' + videoId +
+    '&controls=0&rel=0&modestbranding=1&showinfo=0&enablejsapi=1' +
+    '&origin=' + encodeURIComponent(origin);
 }
 
 function animateBars() {
@@ -73,8 +76,10 @@ function setMusicState(playing) {
 
 function playMusic() {
   const videoId = playlists[currentPlaylist].videoId;
-  ytIframe.src = getEmbedUrl(videoId);
+  const url = getEmbedUrl(videoId);
+  ytIframe.src = url;
   setMusicState(true);
+  showToast('🎵 Loading ' + playlists[currentPlaylist].title + '...');
 }
 
 function stopMusic() {
