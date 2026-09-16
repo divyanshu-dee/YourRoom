@@ -1,7 +1,6 @@
-﻿/* YourRoom — main.js */
+﻿/* YourRoom main.js - Fixed */
 'use strict';
 
-// ─── QUOTES ───────────────────────────────────────
 const quotes = [
   '"The secret of getting ahead is getting started." — Mark Twain',
   '"Study hard what interests you the most." — Richard Feynman',
@@ -13,60 +12,67 @@ const quotes = [
   '"Believe you can and youre halfway there." — Theodore Roosevelt',
 ];
 
-// ─── PLAYLISTS ────────────────────────────────────
 const playlists = [
-  { title: 'Lofi Hip Hop',   artist: 'ChilledCow Radio',  videoId: 'jfKfPfyJRdk' },
-  { title: 'Jazzy Study',    artist: 'Lofi Girl',          videoId: '0vv-QD3d0Pg' },
-  { title: 'Chill Beats',    artist: 'Dreamy Lofi',        videoId: 'lTRiuFIWV54' },
+  { title: 'Lofi Hip Hop',  artist: 'ChilledCow Radio', videoId: 'jfKfPfyJRdk' },
+  { title: 'Jazzy Study',   artist: 'Lofi Girl',         videoId: '0vv-QD3d0Pg' },
+  { title: 'Chill Beats',   artist: 'Dreamy Lofi',       videoId: 'lTRiuFIWV54' },
 ];
 
-// ─── POMODORO CONFIG ──────────────────────────────
 const POMO_MODES = { focus: 25*60, short: 5*60, long: 15*60 };
 
-// ─── STATE ────────────────────────────────────────
-let ytPlayer = null;
-let isPlaying = false;
+let ytPlayer        = null;
+let ytReady         = false;
+let isPlaying       = false;
 let currentPlaylist = 0;
-let activeAmbienceSounds = new Set(['rain']);
-let ambienceNodes = {};
-let audioCtx = null;
-let ambienceVolume = 0.4;
+let activeAmbienceSounds = new Set();
+let ambienceNodes   = {};
+let audioCtx        = null;
+let ambienceVolume  = 0.4;
+let roomLight       = false;
+let deskLamp        = true;
+let fairyOn         = true;
+let candleOn        = true;
+let brightness      = 0.3;
+let pomoMode        = 'focus';
+let pomoTimeLeft    = POMO_MODES.focus;
+let pomoTotal       = POMO_MODES.focus;
+let pomoRunning     = false;
+let pomoInterval    = null;
+let pomoSessions    = 0;
 
-let roomLight = false;
-let deskLamp = true;
-let fairyOn = true;
-let candleOn = true;
-let brightness = 0.3;
-
-let pomoMode = 'focus';
-let pomoTimeLeft = POMO_MODES.focus;
-let pomoTotal = POMO_MODES.focus;
-let pomoRunning = false;
-let pomoInterval = null;
-let pomoSessions = 0;
-
-let currentScene = 'night';
-
-// ─── DOM REFS ─────────────────────────────────────
-const body = document.body;
-const toast = document.getElementById('toast');
+const body     = document.body;
+const toast    = document.getElementById('toast');
 const musicViz = document.getElementById('music-viz');
-const vizBars = musicViz.querySelectorAll('.viz-bar');
+const vizBars  = musicViz.querySelectorAll('.viz-bar');
 
 // ════════════════════════════════════════════
-// YOUTUBE PLAYER
+// YOUTUBE PLAYER  — robust init
 // ════════════════════════════════════════════
-window.onYouTubeIframeAPIReady = function () {
+function createYTPlayer() {
   ytPlayer = new YT.Player('yt-player', {
     height: '0', width: '0',
     videoId: playlists[0].videoId,
-    playerVars: { autoplay: 0, controls: 0, loop: 1, playlist: playlists[0].videoId },
-    events: {
-      onReady: () => console.log('YT ready'),
-      onStateChange: onYTStateChange
-    }
+    playerVars: { autoplay: 0, controls: 0, loop: 1,
+                  playlist: playlists[0].videoId, origin: location.origin },
+    events: { onReady: onYTReady, onStateChange: onYTStateChange }
   });
+}
+
+function onYTReady() {
+  ytReady = true;
+  ytPlayer.setVolume(+document.getElementById('volume-slider').value);
+  console.log('YT player ready');
+}
+
+// Called by YouTube API when script loads
+window.onYouTubeIframeAPIReady = function () {
+  createYTPlayer();
 };
+
+// Fallback: if YT API was already loaded before main.js ran
+if (window.YT && window.YT.Player) {
+  createYTPlayer();
+}
 
 function onYTStateChange(e) {
   if (e.data === YT.PlayerState.PLAYING) {
@@ -83,18 +89,16 @@ function onYTStateChange(e) {
 
 function animateBars() {
   vizBars.forEach((bar, i) => {
-    const h = Math.random() * 22 + 4;
-    const dur = (Math.random() * 0.5 + 0.4).toFixed(2);
-    bar.style.setProperty('--h', h + 'px');
-    bar.style.setProperty('--dur', dur + 's');
-    bar.style.setProperty('--delay', (i * 0.1) + 's');
+    bar.style.setProperty('--h', (Math.random()*22+4) + 'px');
+    bar.style.setProperty('--dur', (Math.random()*0.5+0.4).toFixed(2) + 's');
+    bar.style.setProperty('--delay', (i*0.1) + 's');
   });
 }
 
 document.getElementById('btn-play').addEventListener('click', () => {
-  if (!ytPlayer) { showToast('🎵 Loading player...'); return; }
-  if (isPlaying) { ytPlayer.pauseVideo(); }
-  else { ytPlayer.playVideo(); }
+  if (!ytPlayer || !ytReady) { showToast('🎵 Player still loading, try again…'); return; }
+  if (isPlaying) ytPlayer.pauseVideo();
+  else           ytPlayer.playVideo();
 });
 
 document.getElementById('btn-prev').addEventListener('click', () => {
@@ -108,35 +112,32 @@ document.getElementById('btn-next').addEventListener('click', () => {
 });
 
 document.querySelectorAll('.playlist-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.playlist-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    loadPlaylist(+btn.dataset.playlist);
-  });
+  btn.addEventListener('click', () => loadPlaylist(+btn.dataset.playlist));
 });
 
 function loadPlaylist(idx) {
   currentPlaylist = idx;
   const p = playlists[idx];
-  document.getElementById('music-title').textContent = p.title;
+  document.getElementById('music-title').textContent  = p.title;
   document.getElementById('music-artist').textContent = p.artist;
-  document.querySelectorAll('.playlist-btn').forEach((b, i) => b.classList.toggle('active', i === idx));
-  if (ytPlayer) {
-    ytPlayer.loadVideoById({ videoId: p.videoId, suggestedQuality: 'small' });
+  document.querySelectorAll('.playlist-btn').forEach((b,i) => b.classList.toggle('active', i===idx));
+  if (ytPlayer && ytReady) {
+    ytPlayer.loadVideoById({ videoId: p.videoId });
     ytPlayer.setVolume(+document.getElementById('volume-slider').value);
   }
-  showToast(`🎵 Now playing: ${p.title}`);
+  showToast(`🎵 ${p.title}`);
 }
 
 document.getElementById('volume-slider').addEventListener('input', e => {
-  if (ytPlayer) ytPlayer.setVolume(+e.target.value);
+  if (ytPlayer && ytReady) ytPlayer.setVolume(+e.target.value);
 });
 
 // ════════════════════════════════════════════
-// WEB AUDIO - AMBIENT SOUNDS
+// WEB AUDIO — AMBIENT SOUNDS
 // ════════════════════════════════════════════
 function getAudioCtx() {
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
   return audioCtx;
 }
 
@@ -146,28 +147,28 @@ function createRainSound() {
   const node = ctx.createScriptProcessor(bufferSize, 1, 1);
   node.onaudioprocess = e => {
     const out = e.outputBuffer.getChannelData(0);
-    for (let i = 0; i < bufferSize; i++) out[i] = Math.random() * 2 - 1;
+    for (let i = 0; i < bufferSize; i++) out[i] = Math.random()*2 - 1;
   };
-  const gain = ctx.createGain();
-  gain.gain.value = ambienceVolume * 0.3;
   const filter = ctx.createBiquadFilter();
   filter.type = 'bandpass'; filter.frequency.value = 1200; filter.Q.value = 0.5;
+  const gain = ctx.createGain();
+  gain.gain.value = ambienceVolume * 0.25;
   node.connect(filter); filter.connect(gain); gain.connect(ctx.destination);
   return { node, gain, filter };
 }
 
-function createNoiseSound(freq, q, gainVal) {
+function createNoiseSound(freq, gainVal) {
   const ctx = getAudioCtx();
   const bufferSize = 4096;
   const node = ctx.createScriptProcessor(bufferSize, 1, 1);
   node.onaudioprocess = e => {
     const out = e.outputBuffer.getChannelData(0);
-    for (let i = 0; i < bufferSize; i++) out[i] = Math.random() * 2 - 1;
+    for (let i = 0; i < bufferSize; i++) out[i] = Math.random()*2 - 1;
   };
-  const gain = ctx.createGain();
-  gain.gain.value = gainVal * ambienceVolume;
   const filter = ctx.createBiquadFilter();
   filter.type = 'lowpass'; filter.frequency.value = freq;
+  const gain = ctx.createGain();
+  gain.gain.value = gainVal * ambienceVolume;
   node.connect(filter); filter.connect(gain); gain.connect(ctx.destination);
   return { node, gain, filter };
 }
@@ -181,56 +182,50 @@ function createCrackleSound() {
     const out = e.outputBuffer.getChannelData(0);
     for (let i = 0; i < bufferSize; i++) {
       count++;
-      if (count > 100 + Math.random() * 200) {
-        out[i] = (Math.random() * 2 - 1) * 0.8; count = 0;
-      } else { out[i] = 0; }
+      if (count > 100 + Math.random()*200) { out[i] = (Math.random()*2-1)*0.8; count=0; }
+      else out[i] = 0;
     }
   };
-  const gain = ctx.createGain();
-  gain.gain.value = ambienceVolume * 0.5;
   const filter = ctx.createBiquadFilter();
-  filter.type = 'highpass'; filter.frequency.value = 2000;
+  filter.type = 'highpass'; filter.frequency.value = 1500;
+  const gain = ctx.createGain();
+  gain.gain.value = ambienceVolume * 0.4;
   node.connect(filter); filter.connect(gain); gain.connect(ctx.destination);
   return { node, gain, filter };
 }
 
 const soundCreators = {
   rain:      () => createRainSound(),
-  thunder:   () => createNoiseSound(400, 0.3, 0.2),
+  thunder:   () => createNoiseSound(400, 0.18),
   fireplace: () => createCrackleSound(),
-  cafe:      () => createNoiseSound(800, 0.4, 0.15),
-  birds:     () => createNoiseSound(3000, 2, 0.08),
-  fan:       () => createNoiseSound(200, 0.3, 0.2),
+  cafe:      () => createNoiseSound(800, 0.12),
+  birds:     () => createNoiseSound(3000, 0.06),
+  fan:       () => createNoiseSound(200, 0.18),
 };
 
 function toggleAmbience(name) {
   if (activeAmbienceSounds.has(name)) {
-    stopAmbience(name); activeAmbienceSounds.delete(name);
+    stopAmbienceSound(name);
+    activeAmbienceSounds.delete(name);
     document.getElementById('amb-' + name).classList.remove('active');
     showToast(`🔇 ${name} off`);
+    if (name === 'rain') { body.classList.remove('raining'); clearWindowRain(); }
   } else {
-    startAmbience(name); activeAmbienceSounds.add(name);
+    try { startAmbienceSound(name); } catch(err) { console.warn('Audio:', err); }
+    activeAmbienceSounds.add(name);
     document.getElementById('amb-' + name).classList.add('active');
     showToast(`🔊 ${name} on`);
-    if (name === 'rain') {
-      body.classList.add('raining');
-      startWindowRain();
-    }
-  }
-  if (name === 'rain' && !activeAmbienceSounds.has('rain')) {
-    body.classList.remove('raining'); clearWindowRain();
+    if (name === 'rain') { body.classList.add('raining'); startWindowRain(); }
   }
 }
 
-function startAmbience(name) {
-  try {
-    const s = soundCreators[name](); ambienceNodes[name] = s;
-  } catch(e) { console.warn('Audio error:', e); }
+function startAmbienceSound(name) {
+  const s = soundCreators[name](); ambienceNodes[name] = s;
 }
 
-function stopAmbience(name) {
+function stopAmbienceSound(name) {
   const s = ambienceNodes[name];
-  if (s) { try { s.gain.gain.value = 0; } catch(e) {} delete ambienceNodes[name]; }
+  if (s) { try { s.gain.gain.value = 0; } catch(e){} delete ambienceNodes[name]; }
 }
 
 document.querySelectorAll('.amb-btn').forEach(btn => {
@@ -240,84 +235,37 @@ document.querySelectorAll('.amb-btn').forEach(btn => {
 document.getElementById('ambience-volume').addEventListener('input', e => {
   ambienceVolume = +e.target.value / 100;
   Object.values(ambienceNodes).forEach(s => {
-    if (s && s.gain) s.gain.gain.value = ambienceVolume * 0.3;
+    if (s && s.gain) s.gain.gain.value = ambienceVolume * 0.25;
   });
 });
 
-// Start rain by default after interaction
-function initDefaultAmbience() {
-  body.classList.add('raining');
-  startWindowRain();
-  try { startAmbience('rain'); } catch(e) {}
-  document.removeEventListener('click', initDefaultAmbience);
-}
-document.addEventListener('click', initDefaultAmbience);
-
 // ════════════════════════════════════════════
-// RAIN CANVAS
+// WINDOW RAIN — CSS only, inside window glass
+// (No full-screen canvas. Canvas removed from DOM via CSS.)
 // ════════════════════════════════════════════
-const rainCanvas = document.getElementById('rain-canvas');
-const ctx2d = rainCanvas.getContext('2d');
-let rainDrops = [];
-let rainAnimId = null;
-
-function initRainCanvas() {
-  rainCanvas.width = window.innerWidth;
-  rainCanvas.height = window.innerHeight;
-}
-
-function startRainCanvas() {
-  if (rainAnimId) return;
-  rainDrops = Array.from({length: 120}, () => ({
-    x: Math.random() * window.innerWidth,
-    y: Math.random() * window.innerHeight,
-    speed: Math.random() * 4 + 6,
-    length: Math.random() * 15 + 8,
-    opacity: Math.random() * 0.4 + 0.1,
-    width: Math.random() * 1.5 + 0.5,
-  }));
-  function animate() {
-    ctx2d.clearRect(0, 0, rainCanvas.width, rainCanvas.height);
-    rainDrops.forEach(d => {
-      ctx2d.beginPath();
-      ctx2d.strokeStyle = `rgba(174,214,241,${d.opacity})`;
-      ctx2d.lineWidth = d.width;
-      ctx2d.moveTo(d.x, d.y);
-      ctx2d.lineTo(d.x - 1, d.y + d.length);
-      ctx2d.stroke();
-      d.y += d.speed;
-      if (d.y > rainCanvas.height + 20) { d.y = -20; d.x = Math.random() * rainCanvas.width; }
-    });
-    rainAnimId = requestAnimationFrame(animate);
-  }
-  animate();
-}
-
-function stopRainCanvas() {
-  if (rainAnimId) { cancelAnimationFrame(rainAnimId); rainAnimId = null; }
-  ctx2d.clearRect(0, 0, rainCanvas.width, rainCanvas.height);
-}
-
 function startWindowRain() {
-  startRainCanvas();
   const container = document.getElementById('window-rain-inner');
-  if (!container.children.length) {
-    for (let i = 0; i < 30; i++) {
-      const drop = document.createElement('div');
-      drop.className = 'rain-drop';
-      drop.style.left = Math.random() * 100 + '%';
-      drop.style.height = (Math.random() * 20 + 10) + 'px';
-      drop.style.animationDuration = (Math.random() * 0.8 + 0.4) + 's';
-      drop.style.animationDelay = (Math.random() * 2) + 's';
-      drop.style.opacity = Math.random() * 0.5 + 0.2;
-      container.appendChild(drop);
-    }
+  if (!container) return;
+  container.innerHTML = '';
+  for (let i = 0; i < 40; i++) {
+    const drop = document.createElement('div');
+    drop.className = 'rain-drop';
+    drop.style.cssText = `
+      left: ${Math.random()*100}%;
+      height: ${Math.random()*18+8}px;
+      animation-duration: ${(Math.random()*0.7+0.3).toFixed(2)}s;
+      animation-delay: ${(Math.random()*2).toFixed(2)}s;
+      opacity: ${(Math.random()*0.5+0.25).toFixed(2)};
+      width: ${(Math.random()*1+0.5).toFixed(1)}px;
+    `;
+    container.appendChild(drop);
   }
 }
 
-function clearWindowRain() { stopRainCanvas(); }
-window.addEventListener('resize', () => { initRainCanvas(); if (body.classList.contains('raining')) startRainCanvas(); });
-initRainCanvas();
+function clearWindowRain() {
+  const container = document.getElementById('window-rain-inner');
+  if (container) container.innerHTML = '';
+}
 
 // ════════════════════════════════════════════
 // LIGHTS
@@ -325,7 +273,8 @@ initRainCanvas();
 document.getElementById('toggle-room-light').addEventListener('change', e => {
   roomLight = e.target.checked;
   body.classList.toggle('lights-on', roomLight);
-  document.documentElement.style.setProperty('--brightness', roomLight ? Math.max(0.7, brightness) : Math.min(0.4, brightness));
+  const newB = roomLight ? Math.max(0.7, brightness) : Math.min(0.4, brightness);
+  document.documentElement.style.setProperty('--brightness', newB);
   showToast(roomLight ? '💡 Room light on' : '🌙 Room light off');
 });
 
@@ -352,7 +301,6 @@ document.getElementById('brightness-slider').addEventListener('input', e => {
   document.documentElement.style.setProperty('--brightness', brightness);
 });
 
-// Init lamp-on state
 document.getElementById('desk-lamp').classList.add('lamp-on');
 
 // ════════════════════════════════════════════
@@ -367,25 +315,22 @@ document.querySelectorAll('.scene-btn').forEach(btn => {
 });
 
 function setScene(scene) {
-  body.classList.remove('scene-night', 'scene-sunset', 'scene-day', 'scene-rain');
+  body.classList.remove('scene-night','scene-sunset','scene-day','scene-rain');
   body.classList.add('scene-' + scene);
-  currentScene = scene;
-  const toasts = { night: '🌙 Night mode', sunset: '🌅 Sunset vibes', day: '☀️ Day mode', rain: '🌧️ Rainy day' };
-  showToast(toasts[scene]);
-  if (scene === 'rain' && !activeAmbienceSounds.has('rain')) {
-    toggleAmbience('rain');
-  }
+  const msgs = { night:'🌙 Night mode', sunset:'🌅 Sunset vibes', day:'☀️ Day mode', rain:'🌧️ Rainy day' };
+  showToast(msgs[scene]);
+  if (scene === 'rain' && !activeAmbienceSounds.has('rain')) toggleAmbience('rain');
 }
 
 // ════════════════════════════════════════════
 // POMODORO TIMER
 // ════════════════════════════════════════════
 const CIRCUMFERENCE = 339.3;
-const pomoProgress = document.getElementById('pomo-progress');
-const pomoTimeEl = document.getElementById('pomo-time');
-const pomoCountEl = document.getElementById('pomo-count');
-const pomoStartBtn = document.getElementById('pomo-start');
-const pomoResetBtn = document.getElementById('pomo-reset');
+const pomoProgress  = document.getElementById('pomo-progress');
+const pomoTimeEl    = document.getElementById('pomo-time');
+const pomoCountEl   = document.getElementById('pomo-count');
+const pomoStartBtn  = document.getElementById('pomo-start');
+const pomoResetBtn  = document.getElementById('pomo-reset');
 
 document.querySelectorAll('.pomo-tab').forEach(tab => {
   tab.addEventListener('click', () => {
@@ -397,11 +342,11 @@ document.querySelectorAll('.pomo-tab').forEach(tab => {
 
 function switchPomoMode(mode) {
   if (pomoRunning) stopPomo();
-  pomoMode = mode;
+  pomoMode     = mode;
   pomoTimeLeft = POMO_MODES[mode];
-  pomoTotal = POMO_MODES[mode];
+  pomoTotal    = POMO_MODES[mode];
   updatePomoDisplay();
-  const colors = { focus: '#f4a261', short: '#52b788', long: '#457b9d' };
+  const colors = { focus:'#f4a261', short:'#52b788', long:'#457b9d' };
   pomoProgress.style.stroke = colors[mode];
 }
 
@@ -416,87 +361,74 @@ function startPomo() {
       clearInterval(pomoInterval); pomoRunning = false;
       pomoStartBtn.textContent = '▶ Start';
       if (pomoMode === 'focus') { pomoSessions++; pomoCountEl.textContent = pomoSessions; }
-      showToast(pomoMode === 'focus' ? '🍅 Focus session done! Take a break.' : '⏱️ Break over! Time to focus.');
-      // Ring notification
+      showToast(pomoMode === 'focus' ? '🍅 Session done! Take a break.' : '⏱️ Break over! Focus time.');
       try {
-        const ctx = getAudioCtx();
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain); gain.connect(ctx.destination);
-        osc.frequency.value = 880;
-        gain.gain.value = 0.3;
-        osc.start();
-        setTimeout(() => { gain.gain.value = 0; osc.stop(); }, 600);
+        const actx = getAudioCtx();
+        const osc  = actx.createOscillator();
+        const gain = actx.createGain();
+        osc.connect(gain); gain.connect(actx.destination);
+        osc.frequency.value = 880; gain.gain.value = 0.25;
+        osc.start(); setTimeout(() => { gain.gain.value = 0; osc.stop(); }, 500);
       } catch(e) {}
     }
   }, 1000);
 }
 
 function pausePomo() {
-  clearInterval(pomoInterval); pomoRunning = false;
-  pomoStartBtn.textContent = '▶ Start';
+  clearInterval(pomoInterval); pomoRunning = false; pomoStartBtn.textContent = '▶ Start';
 }
 
-function stopPomo() { clearInterval(pomoInterval); pomoRunning = false; pomoStartBtn.textContent = '▶ Start'; }
+function stopPomo() {
+  clearInterval(pomoInterval); pomoRunning = false; pomoStartBtn.textContent = '▶ Start';
+}
 
 function resetPomo() {
-  stopPomo();
-  pomoTimeLeft = POMO_MODES[pomoMode];
-  pomoTotal = POMO_MODES[pomoMode];
-  updatePomoDisplay();
+  stopPomo(); pomoTimeLeft = POMO_MODES[pomoMode]; pomoTotal = POMO_MODES[pomoMode]; updatePomoDisplay();
 }
 
 function updatePomoDisplay() {
-  const m = Math.floor(pomoTimeLeft / 60).toString().padStart(2, '0');
-  const s = (pomoTimeLeft % 60).toString().padStart(2, '0');
+  const m  = Math.floor(pomoTimeLeft/60).toString().padStart(2,'0');
+  const s  = (pomoTimeLeft%60).toString().padStart(2,'0');
   pomoTimeEl.textContent = m + ':' + s;
-  const pct = pomoTimeLeft / pomoTotal;
-  pomoProgress.style.strokeDashoffset = CIRCUMFERENCE * (1 - pct);
+  pomoProgress.style.strokeDashoffset = CIRCUMFERENCE * (1 - pomoTimeLeft/pomoTotal);
 }
 
-pomoStartBtn.addEventListener('click', () => {
-  if (pomoRunning) { pausePomo(); } else { startPomo(); }
-});
+pomoStartBtn.addEventListener('click', () => { if (pomoRunning) pausePomo(); else startPomo(); });
 pomoResetBtn.addEventListener('click', resetPomo);
 
 // ════════════════════════════════════════════
-// CLOCK & SCREEN
+// CLOCK
 // ════════════════════════════════════════════
 function updateClock() {
   const now = new Date();
   const H = now.getHours(), M = now.getMinutes(), S = now.getSeconds();
-  // Wall clock hands
-  const secDeg  = S * 6;
-  const minDeg  = M * 6 + S * 0.1;
-  const hourDeg = (H % 12) * 30 + M * 0.5;
-  document.getElementById('second-hand').style.transform = `translateX(-50%) rotate(${secDeg}deg)`;
-  document.getElementById('minute-hand').style.transform = `translateX(-50%) rotate(${minDeg}deg)`;
-  document.getElementById('hour-hand').style.transform   = `translateX(-50%) rotate(${hourDeg}deg)`;
-  // Screen clock
+  document.getElementById('second-hand').style.transform = `translateX(-50%) rotate(${S*6}deg)`;
+  document.getElementById('minute-hand').style.transform = `translateX(-50%) rotate(${M*6+S*0.1}deg)`;
+  document.getElementById('hour-hand').style.transform   = `translateX(-50%) rotate(${(H%12)*30+M*0.5}deg)`;
   const hh = H.toString().padStart(2,'0');
   const mm = M.toString().padStart(2,'0');
   const ss = S.toString().padStart(2,'0');
   document.getElementById('screen-clock').textContent = `${hh}:${mm}:${ss}`;
-  // Screen date
-  const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const days   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
   const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   document.getElementById('screen-date').textContent = `${days[now.getDay()]}, ${months[now.getMonth()]} ${now.getDate()}`;
 }
 setInterval(updateClock, 1000);
 updateClock();
 
-// Rotate screen quote
 let quoteIdx = 0;
 function rotateQuote() {
-  document.getElementById('screen-quote').style.opacity = '0';
+  const el = document.getElementById('screen-quote');
+  el.style.opacity = '0';
   setTimeout(() => {
-    quoteIdx = (quoteIdx + 1) % quotes.length;
-    document.getElementById('screen-quote').textContent = quotes[quoteIdx];
-    document.getElementById('screen-quote').style.opacity = '1';
+    quoteIdx = (quoteIdx+1) % quotes.length;
+    el.textContent = quotes[quoteIdx];
+    el.style.opacity = '1';
   }, 500);
 }
-document.getElementById('screen-quote').style.transition = 'opacity 0.5s ease';
-document.getElementById('screen-quote').textContent = quotes[0];
+const quoteEl = document.getElementById('screen-quote');
+quoteEl.style.transition = 'opacity 0.5s ease';
+quoteEl.textContent = quotes[0];
 setInterval(rotateQuote, 12000);
 
 // ════════════════════════════════════════════
@@ -507,14 +439,8 @@ function generateStars() {
   for (let i = 0; i < 60; i++) {
     const star = document.createElement('div');
     star.className = 'star';
-    const size = Math.random() * 2.5 + 0.5;
-    star.style.cssText = `
-      left: ${Math.random()*100}%;
-      top: ${Math.random()*100}%;
-      width: ${size}px; height: ${size}px;
-      --dur: ${(Math.random()*3+1).toFixed(1)}s;
-      --del: ${(Math.random()*3).toFixed(1)}s;
-    `;
+    const size = Math.random()*2.5+0.5;
+    star.style.cssText = `left:${Math.random()*100}%;top:${Math.random()*100}%;width:${size}px;height:${size}px;--dur:${(Math.random()*3+1).toFixed(1)}s;--del:${(Math.random()*3).toFixed(1)}s;`;
     container.appendChild(star);
   }
 }
@@ -523,16 +449,11 @@ generateStars();
 // ════════════════════════════════════════════
 // PANEL COLLAPSE
 // ════════════════════════════════════════════
-const panel = document.getElementById('control-panel');
-const panelToggle = document.getElementById('panel-toggle-btn');
-const panelOpenTab = document.getElementById('panel-open-tab');
-
-panelToggle.addEventListener('click', () => {
-  panel.classList.add('collapsed');
-});
-panelOpenTab.addEventListener('click', () => {
-  panel.classList.remove('collapsed');
-});
+const panel         = document.getElementById('control-panel');
+const panelToggle   = document.getElementById('panel-toggle-btn');
+const panelOpenTab  = document.getElementById('panel-open-tab');
+panelToggle.addEventListener('click',  () => panel.classList.add('collapsed'));
+panelOpenTab.addEventListener('click', () => panel.classList.remove('collapsed'));
 
 // ════════════════════════════════════════════
 // TOAST
@@ -549,9 +470,9 @@ function showToast(msg) {
 // VIZ BARS INIT
 // ════════════════════════════════════════════
 vizBars.forEach((bar, i) => {
-  bar.style.setProperty('--h', (Math.random()*18+4) + 'px');
-  bar.style.setProperty('--dur', (Math.random()*0.5+0.4).toFixed(2) + 's');
-  bar.style.setProperty('--delay', (i * 0.08) + 's');
+  bar.style.setProperty('--h', (Math.random()*18+4)+'px');
+  bar.style.setProperty('--dur', (Math.random()*0.5+0.4).toFixed(2)+'s');
+  bar.style.setProperty('--delay', (i*0.08)+'s');
 });
 
 // ════════════════════════════════════════════
@@ -560,17 +481,12 @@ vizBars.forEach((bar, i) => {
 document.addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT') return;
   switch(e.key) {
-    case ' ': e.preventDefault();
-      document.getElementById('btn-play').click(); break;
-    case 'l': case 'L':
-      document.getElementById('toggle-room-light').click(); break;
-    case 'r': case 'R':
-      document.getElementById('amb-rain').click(); break;
-    case 'p': case 'P':
-      pomoStartBtn.click(); break;
-    case 'Escape':
-      panel.classList.toggle('collapsed'); break;
+    case ' ':  e.preventDefault(); document.getElementById('btn-play').click(); break;
+    case 'l': case 'L': document.getElementById('toggle-room-light').click(); break;
+    case 'r': case 'R': document.getElementById('amb-rain').click(); break;
+    case 'p': case 'P': pomoStartBtn.click(); break;
+    case 'Escape': panel.classList.toggle('collapsed'); break;
   }
 });
 
-console.log('%c🏠 YourRoom loaded! Press Space=music, L=light, R=rain, P=pomodoro, Esc=panel', 'color:#f4a261;font-size:14px;font-weight:bold');
+console.log('%c🏠 YourRoom — Space=music | L=light | R=rain | P=pomo | Esc=panel', 'color:#f4a261;font-size:13px;font-weight:bold');
