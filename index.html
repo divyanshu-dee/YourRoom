@@ -113,15 +113,75 @@
       </div>
       <div class="desk-area">
         <div class="desk">
-          <div class="desk-light-pool" id="desk-light-pool"></div>
-          <div class="desk-lamp" id="desk-lamp">
-            <div class="lamp-base"></div>
-            <div class="lamp-arm lamp-arm-1"></div>
-            <div class="lamp-arm lamp-arm-2"></div>
-            <div class="lamp-head">
-              <div class="lamp-head-bulb"></div>
-            </div>
-            <div class="lamp-light-cone" id="lamp-cone"></div>
+          <div class="desk-lamp lamp-on" id="desk-lamp">
+            <svg class="lamp-svg" viewBox="0 0 280 180" width="280" height="180" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="lampMetal" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stop-color="#e0b870"/>
+                  <stop offset="50%" stop-color="#b89355"/>
+                  <stop offset="100%" stop-color="#7a5e28"/>
+                </linearGradient>
+                <linearGradient id="lampBeamGrad" x1="0.6" y1="0.1" x2="0.3" y2="1">
+                  <stop offset="0%" stop-color="#fff4cc" stop-opacity="0.55"/>
+                  <stop offset="35%" stop-color="#ffe082" stop-opacity="0.30"/>
+                  <stop offset="70%" stop-color="#ffd54f" stop-opacity="0.12"/>
+                  <stop offset="100%" stop-color="#ffca28" stop-opacity="0"/>
+                </linearGradient>
+                <radialGradient id="deskGlowGrad" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%" stop-color="#fff9c4" stop-opacity="0.55"/>
+                  <stop offset="50%" stop-color="#ffe082" stop-opacity="0.25"/>
+                  <stop offset="100%" stop-color="#ffca28" stop-opacity="0"/>
+                </radialGradient>
+                <filter id="softBeam" x="-20%" y="-20%" width="140%" height="140%">
+                  <feGaussianBlur stdDeviation="7"/>
+                </filter>
+                <filter id="bulbHalo" x="-50%" y="-50%" width="200%" height="200%">
+                  <feGaussianBlur stdDeviation="5"/>
+                </filter>
+                <filter id="deskBlur" x="-20%" y="-20%" width="140%" height="140%">
+                  <feGaussianBlur stdDeviation="6"/>
+                </filter>
+              </defs>
+
+              <!-- LIGHT LAYER (toggles with lamp-on) -->
+              <g class="lamp-light-layer">
+                <!-- Soft diffused light cone -->
+                <polygon points="102,68 136,54 195,142 15,142" fill="url(#lampBeamGrad)" filter="url(#softBeam)"/>
+                <!-- Glow pool on desk top -->
+                <ellipse cx="105" cy="142" rx="80" ry="14" fill="url(#deskGlowGrad)" filter="url(#deskBlur)"/>
+                <!-- Bulb halo in shade -->
+                <ellipse cx="119" cy="62" rx="16" ry="10" fill="#fff9c4" opacity="0.8" filter="url(#bulbHalo)"/>
+              </g>
+
+              <!-- LAMP HARDWARE -->
+              <g class="lamp-hardware">
+                <!-- Base on desk surface -->
+                <rect x="195" y="134" width="46" height="10" rx="5" fill="#3a3028" stroke="#5c4a38" stroke-width="1"/>
+                <ellipse cx="218" cy="135" rx="20" ry="3" fill="#6d5843"/>
+                <!-- Base bracket -->
+                <rect x="214" y="127" width="8" height="8" rx="2" fill="#8a6e4e"/>
+                <!-- Lower arm -->
+                <line x1="218" y1="128" x2="182" y2="66" stroke="#b89355" stroke-width="4.5" stroke-linecap="round"/>
+                <line x1="218" y1="128" x2="182" y2="66" stroke="#e8c872" stroke-width="1.5" stroke-linecap="round"/>
+                <!-- Elbow joint hinge -->
+                <circle cx="182" cy="66" r="6.5" fill="#5c4a38" stroke="#e8c872" stroke-width="1.5"/>
+                <!-- Upper arm -->
+                <line x1="182" y1="66" x2="124" y2="46" stroke="#b89355" stroke-width="4.5" stroke-linecap="round"/>
+                <line x1="182" y1="66" x2="124" y2="46" stroke="#e8c872" stroke-width="1.5" stroke-linecap="round"/>
+                <!-- Head knuckle joint -->
+                <circle cx="124" cy="46" r="5" fill="#5c4a38" stroke="#e8c872" stroke-width="1.5"/>
+                <!-- Shade bell (hood) angled downwards -->
+                <g transform="translate(124, 46) rotate(34)">
+                  <!-- Top finial/knob -->
+                  <rect x="-3" y="-10" width="6" height="5" rx="1.5" fill="#8a6e4e"/>
+                  <!-- Bell shade body -->
+                  <path d="M -7,-5 L 7,-5 C 10,5 16,16 22,24 L -22,24 C -16,16 -10,5 -7,-5 Z" fill="url(#lampMetal)" stroke="#5c4a38" stroke-width="0.8"/>
+                  <!-- Inner rim opening -->
+                  <ellipse cx="0" cy="24" rx="22" ry="5.5" fill="#2a1f14" stroke="#5c4a38" stroke-width="0.5"/>
+                  <ellipse cx="0" cy="23" rx="20" ry="4.5" fill="#fffbe6" class="lamp-bulb-element"/>
+                </g>
+              </g>
+            </svg>
           </div>
           <div class="monitor-setup">
             <div class="monitor-stand"></div>
